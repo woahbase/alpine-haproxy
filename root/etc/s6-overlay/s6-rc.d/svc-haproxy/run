@@ -1,0 +1,17 @@
+#!/usr/bin/with-contenv bash
+set -e
+
+HAPROXY_CONF="${HAPROXY_CONF:-/etc/haproxy/haproxy.cfg}";
+HAPROXY_ARGS="${HAPROXY_ARGS:- -db}";
+
+# if [ -z "${HAPROXY_SKIP_CFGTEST}" ]; # set to true to skip
+# then
+#     # vecho "Testing configurations.";
+#     haproxy -c -f "${HAPROXY_CONF}" || exit 1;
+# fi;
+
+exec \
+  /usr/sbin/haproxy \
+    -f "${HAPROXY_CONF}" \
+    ${HAPROXY_ARGS} \
+  ;

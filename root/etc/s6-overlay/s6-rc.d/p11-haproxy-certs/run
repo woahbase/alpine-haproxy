@@ -1,0 +1,41 @@
+#!/usr/bin/with-contenv bash
+set -e
+
+vecho () { if [ "${S6_VERBOSITY:-1}" -gt 0 ]; then echo "[$0] $@"; fi; }
+
+HAPROXY_CONF="${HAPROXY_CONF:-/etc/haproxy/haproxy.cfg}";
+
+# HAPROXY_CRTFILE="${HAPROXY_CRTFILE:-$(dirname ${HAPROXY_CONF})/ssl/certificate.pem}"; # default unset, set to enable, generated if not exists
+DEFAULTSUBJECT="/C=US/ST=NY/L=EXAMPLE/O=EXAMPLE/OU=EXAMPLE/CN=*/emailAddress=me@example.com"
+SSLSUBJECT=${SSLSUBJECT:-$DEFAULTSUBJECT};
+
+if [ -n "${HAPROXY_CRTFILE}" ];
+then
+    if [ -f "${HAPROXY_CRTFILE}" ];
+    then
+        vecho "Using cert found in ${HAPROXY_CRTFILE}";
+        vecho "Make sure haproxy configurations have the same path as this.";
+    else
+        vecho "Generating self-signed cert/key in";
+        vecho "${HAPROXY_CRTFILE}";
+        vecho "You may want to replace this with your own.";
+        mkdir -p "$(dirname ${HAPROXY_CRTFILE})";
+        PKEYFILE="${HAPROXY_CRTFILE//.pem/.key}";
+        CERTFILE="${HAPROXY_CRTFILE//.pem/.crt}";
+        openssl req \
+            -newkey rsa:4096 \
+            -nodes \
+            -outform PEM \
+            -x509 \
+            -days 3650 \
+            -keyout "${PKEYFILE}" \
+            -out "${CERTFILE}" \
+            -subj "${SSLSUBJECT}";
+        # merge into single file for haproxy
+        cat ${PKEYFILE} >  ${HAPROXY_CRTFILE} && rm -f ${PKEYFILE};
+        cat ${CERTFILE} >> ${HAPROXY_CRTFILE} && rm -f ${CERTFILE};
+    fi;
+    chown ${S6_USER:-alpine}:${PGID:-1000} \
+        $(dirname ${HAPROXY_CRTFILE}) \
+        ;
+fi;

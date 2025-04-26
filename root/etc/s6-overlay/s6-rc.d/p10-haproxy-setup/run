@@ -1,0 +1,74 @@
+#!/usr/bin/with-contenv bash
+set -e
+
+vecho () { if [ "${S6_VERBOSITY:-1}" -gt 0 ]; then echo "[$0] $@"; fi; }
+
+HAPROXY_CONF="${HAPROXY_CONF:-/etc/haproxy/haproxy.cfg}";
+HAPROXY_DATA="${HAPROXY_DATA:-/var/lib/haproxy}";
+HAPROXY_SOCK="${HAPROXY_SOCK:-/var/run/haproxy.sock}";
+
+# make our folders
+vecho "Ensure configuration directories exist.";
+mkdir -p \
+    "${HAPROXY_DATA}" \
+    "$(dirname ${HAPROXY_CONF})" \
+    ;
+
+# function to substitute paths in config files
+_subst () {
+    if [ -n "${DPA_ARGS}" ];
+    then
+        DPA_ARGS="${DPA_ARGS} --master-worker-mode"; # because we're running within haproxy process
+        # additional args added for DPA_CONF and certificate
+        if [ -n "${DPA_CONF}" ]; then DPA_ARGS="-f ${DPA_CONF} ${DPA_ARGS}"; fi;
+        if [ -n "${HAPROXY_CRTFILE}" ]; then DPA_ARGS="${DPA_ARGS} --tls-certificate ${HAPROXY_CRTFILE}"; fi;
+    else
+        DPA_ARGS="${DPA_ARGS:-# skipped because DPA_ARGS environment variable is not set}";
+    fi;
+
+    # only replace strings beginning with a single space
+    # so we don't accidentally replace environment variables
+    sed \
+    -e "s| DPA_CONFDIR| ${DPA_CONFDIR:-$(dirname ${DPA_CONF:-/etc/haproxy/dataplaneapi.yaml})}|g" \
+    -e "s| DPA_CONF| ${DPA_CONF:-/etc/haproxy/dataplaneapi.yaml}|g" \
+    -e "s| DPA_SOCK| ${DPA_SOCK:-/var/run/data-plane.sock}|g" \
+    -e "s| DPA_USERNAME| ${DPA_USERNAME:-admin}|g" \
+    -e "s| DPA_PASSWORD| ${DPA_PASSWORD:-insecurebydefault}|g" \
+    -e "s| DPA_ARGS| ${DPA_ARGS}|g" \
+    -e "s| HAPROXY_CONF| ${HAPROXY_CONF}|g" \
+    -e "s| HAPROXY_CRTFILE| ${HAPROXY_CRTFILE:-$(dirname ${HAPROXY_CONF})/ssl/certificate.pem}|g" \
+    -e "s| HAPROXY_SOCK| ${HAPROXY_SOCK}|g" \
+    -e "s| HOSTNAME| ${HAPROXY_HOST:-$HOSTNAME}|g" \
+    -e "s| S6_USER| ${S6_USER:-alpine}|g" \
+    $1 > $2;
+}
+
+# ensure haproxy cfg exists
+if [ ! -e "${HAPROXY_CONF}" ];
+then
+    vecho "Setting up default configuration at ${HAPROXY_CONF}.";
+    # cp /defaults/haproxy.cfg ${HAPROXY_CONF};
+    _subst /defaults/haproxy.cfg "${HAPROXY_CONF}";
+fi;
+
+# DPA_CONF="${DPA_CONF:-/etc/haproxy/dataplaneapi.yaml}"; # default unset, set to enable
+if [ -n "${DPA_CONF}" ];
+then
+    if [ ! -f "${DPA_CONF}" ];
+    then
+        mkdir -p "$(dirname ${DPA_CONF})";
+        vecho "Setting up default dataplaneapi configuration at ${DPA_CONF}.";
+        # cp /defaults/dataplaneapi.yaml ${DPA_CONF};
+        _subst /defaults/dataplaneapi.yaml "${DPA_CONF}";
+    fi;
+    chown -R ${S6_USER:-alpine}:${PGID:-1000} \
+        "$(dirname ${DPA_CONF})" \
+        ;
+fi;
+
+# fix permissions
+vecho "Fixing permissions.";
+chown -R ${S6_USER:-alpine}:${PGID:-1000} \
+    "${HAPROXY_DATA}" \
+    "$(dirname ${HAPROXY_CONF})" \
+    ;
