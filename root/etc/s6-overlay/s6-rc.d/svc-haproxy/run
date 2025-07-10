@@ -1,17 +1,27 @@
 #!/usr/bin/with-contenv bash
 set -e
 
+usercmd () {
+    if [ "X${EUID}" != "X0" ] || [ -n "${HAPROXY_AS_ROOT}" ];
+    then ${1} "${@:2}";
+    else s6-setuidgid ${PUID:-1000}:${PGID:-1000} ${1} "${@:2}";
+    fi;
+}
+
 HAPROXY_CONF="${HAPROXY_CONF:-/etc/haproxy/haproxy.cfg}";
-HAPROXY_ARGS="${HAPROXY_ARGS:- -db}";
+HAPROXY_CONFD="${HAPROXY_CONFD:-$(dirname ${HAPROXY_CONF})/cfg.d}";
+HAPROXY_ARGS="${HAPROXY_ARGS:- -W -S ${HAPROXY_MASTERSOCK:-/var/run/haproxy/master.sock}}";
 
 # if [ -z "${HAPROXY_SKIP_CFGTEST}" ]; # set to true to skip
 # then
 #     # vecho "Testing configurations.";
-#     haproxy -c -f "${HAPROXY_CONF}" || exit 1;
+#     haproxy -c -f "${HAPROXY_CONF}" -f "${HAPROXY_CONFD}" || exit 1;
 # fi;
 
+usercmd \
 exec \
   /usr/sbin/haproxy \
     -f "${HAPROXY_CONF}" \
+    -f "${HAPROXY_CONFD}" \
     ${HAPROXY_ARGS} \
   ;

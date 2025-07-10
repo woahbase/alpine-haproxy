@@ -4,32 +4,23 @@ ARG IMAGEBASE=frommakefile
 #
 FROM ${IMAGEBASE}
 #
-ARG DPASRCARCH
-ARG DPAVERSION
+# no DataPlaneAPI binary for riscv64, fallback to apk package
 #
 RUN set -xe \
     && apk add --no-cache --purge -uU \
         ca-certificates \
-        curl \
         haproxy \
-        # haproxy-dataplaneapi \
+        haproxy-dataplaneapi \
         libcap \
         openssl \
         socat \
         tzdata \
     && mkdir -p /defaults \
     && mv /etc/haproxy/haproxy.cfg /defaults/haproxy.cfg.default \
+    && mv /etc/haproxy/dataplaneapi.yml /defaults/dataplaneapi.yml.default \
     && setcap 'CAP_NET_BIND_SERVICE=+ep' $(which haproxy) \
 #
-    && echo "Using DataPlaneAPI version: $DPASRCARCH / $DPAVERSION" \
-    && curl -jSLN \
-        -o /tmp/dataplaneapi_${DPAVERSION}_${DPASRCARCH}.tar.gz \
-        https://github.com/haproxytech/dataplaneapi/releases/download/v${DPAVERSION}/dataplaneapi_${DPAVERSION}_${DPASRCARCH}.tar.gz \
-    && tar -xzf /tmp/dataplaneapi_${DPAVERSION}_${DPASRCARCH}.tar.gz -C /usr/local/bin \
-    && mv /usr/local/bin/dataplaneapi.yml.dist /defaults/ \
-#
     && apk del --purge \
-        curl \
         libcap \
     && rm -rf /var/cache/apk/* /tmp/*
 #

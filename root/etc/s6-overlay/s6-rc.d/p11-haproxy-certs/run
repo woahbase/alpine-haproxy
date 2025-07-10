@@ -35,7 +35,11 @@ then
         cat ${PKEYFILE} >  ${HAPROXY_CRTFILE} && rm -f ${PKEYFILE};
         cat ${CERTFILE} >> ${HAPROXY_CRTFILE} && rm -f ${CERTFILE};
     fi;
-    chown ${S6_USER:-alpine}:${PGID:-1000} \
-        $(dirname ${HAPROXY_CRTFILE}) \
-        ;
+    if [ "X${EUID}" == "X0" ]; # requires root
+    then
+        chown ${S6_USER:-alpine}:${PGID:-1000} \
+            $(dirname ${HAPROXY_CRTFILE}) \
+            ${HAPROXY_CRTFILE} \
+            ;
+    fi;
 fi;

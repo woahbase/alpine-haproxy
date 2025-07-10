@@ -4,10 +4,12 @@ dataplaneapi:
   socket_path: DPA_SOCK
   host: 0.0.0.0
   port: 8080
+  scheme:
+  - http
   # user: # Deprecated
-  # - name: DPA_USERNAME
+  #   name: DPA_USERNAME
+  #   passowrd: DPA_PASSWORD
   #   insecure: true
-  #   password: DPA_PASSWORD
   # # instead use
   # userlist:
   #   userlist: haproxy-dataplaneapi
@@ -15,19 +17,34 @@ dataplaneapi:
   # advertised:
   #   api_address: ""
   #   api_port: 0
-  # scheme:
-  # - http
+  transaction:
+    transaction_dir: DPA_CONFDIR/transactions
+    backups_number: 10
+    backups_dir: DPA_CONFDIR/backups
+    max_open_transactions: 10
   resources:
     maps_dir: DPA_CONFDIR/maps
     ssl_certs_dir: DPA_CONFDIR/ssl
+    general_storage_dir: DPA_CONFDIR/general
     spoe_dir: DPA_CONFDIR/spoe
+    dataplane_storage_dir: DPA_CONFDIR/dataplane
 haproxy:
   config_file: HAPROXY_CONF
   haproxy_bin: /usr/sbin/haproxy
+  master_worker_mode: false
+  master_runtime: HAPROXY_STATSOCK
   reload:
+    reload_delay: 5
     reload_strategy: custom
-    reload_cmd: kill -SIGUSR2 1
-    restart_cmd: kill -SIGUSR2 1
+    # reload_cmd: kill -SIGUSR2 1
+    # restart_cmd: kill -SIGUSR2 1
+    reload_cmd: /usr/local/bin/haproxy-reconf.sh
+    restart_cmd: /usr/local/bin/haproxy-reconf.sh
+    # reload_cmd: s6-svc -r /run/service/svc-haproxy
+    # restart_cmd: s6-svc -r /run/service/svc-haproxy
 log_targets:
 - log_to: stdout
   log_level: info
+  log_types:
+  - access
+  - app
