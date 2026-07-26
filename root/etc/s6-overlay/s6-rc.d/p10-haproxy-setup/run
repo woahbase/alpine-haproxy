@@ -30,9 +30,6 @@ _subst () {
 
     if [ -n "${DPA_ARGS}" ];
     then
-        if [ -z "${DPA_AS_S6SVC}" ];
-        then DPA_ARGS="${DPA_ARGS} --master-worker-mode"; # because we're running within haproxy process
-        fi;
         # additional args added for DPA_CONF and certificate
         if [ -n "${DPA_CONF}" ]; then DPA_ARGS="-f ${DPA_CONF} ${DPA_ARGS}"; fi;
         if [ -n "${HAPROXY_CRTFILE}" ]; then DPA_ARGS="${DPA_ARGS} --tls-certificate ${HAPROXY_CRTFILE}"; fi;

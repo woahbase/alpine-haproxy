@@ -6,8 +6,7 @@ usercmd () { if [ "X${EUID}" != "X0" ]; then ${1} "${@:2}"; else s6-setuidgid ${
 
 # DPA_ARGS="${DPA_ARGS:-}"; unset by default
 
-if [ -n "${DPA_ARGS}" ] \
-&& [ -n "${DPA_AS_S6SVC}" ];
+if [ -n "${DPA_ARGS}" ];
 then
     # additional args added for DPA_CONF and certificate
     if [ -f "${DPA_CONF}" ]; then DPA_ARGS="-f ${DPA_CONF} ${DPA_ARGS}"; fi;

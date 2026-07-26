@@ -113,7 +113,6 @@ OTHERFLAGS := \
 	# -e DPA_ARGS="-i -u haproxy-dataplaneapi --reload-cmd 'kill -SIGUSR2 1' --restart-cmd 'kill -SIGUSR2 1'" \
 	# -e DPA_ARGS="-i -u haproxy-dataplaneapi" \
 	# -e DPA_CONF="/etc/haproxy/dataplaneapi.yaml" \
-	# -e DPA_AS_S6SVC=1 \
 	# -e HAPROXY_CONF="/etc/haproxy/haproxy.cfg" \
 	# -e HAPROXY_CRTFILE="/etc/haproxy/ssl/certificate.pem" \
 	# -e HAPROXY_PROMEX=yes \
